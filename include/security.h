@@ -17,7 +17,7 @@ int verify_password(const char *password, const char *hash);
 struct rate_limit_entry {
     char ip_address[46];  /* IPv6 max length */
     uint32_t request_count;
-    time_t window
+    time_t window;
     time_t window_start;
     time_t last_request;
 };
