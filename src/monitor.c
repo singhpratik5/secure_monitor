@@ -8,6 +8,7 @@
 #include <sys/sysinfo.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include <ctype.h>
 
 /**
  * Collect comprehensive system statistics
