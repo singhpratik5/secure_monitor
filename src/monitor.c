@@ -10,6 +10,8 @@
 #include <dirent.h>
 #include <ctype.h>
 
+// ADD THIS PROTOTYPE HERE
+static uint32_t count_network_connections(void);
 /**
  * Collect comprehensive system statistics
  */
