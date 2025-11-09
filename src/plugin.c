@@ -7,6 +7,8 @@
 #include <syslog.h>
 #include <errno.h>
 
+// ADD THIS PROTOTYPE
+static int load_single_plugin(struct plugin_manager *pm, const char *path);
 /**
  * Initialize plugin manager
  */

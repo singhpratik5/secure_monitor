@@ -250,7 +250,7 @@ int handle_tcp_connection(struct daemon_state *state) {
     }
     
     /* Check connection limit */
-    if (state->active_connections >= state->config->max_connections) {
+    if (state->active_connections >= (uint64_t)state->config->max_connections) {
         syslog(LOG_WARNING, "Connection limit reached, rejecting connection");
         close(client_fd);
         return -1;

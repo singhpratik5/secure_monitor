@@ -135,7 +135,7 @@ int collect_network_stats(struct system_stats *stats) {
     FILE *fp;
     char line[256];
     char iface[32];
-    unsigned long rx_bytes, rx_packets, tx_bytes, tx_packets;
+    unsigned long rx_bytes, rx_packets, tx_bytes;
     unsigned long dummy;
     
     fp = fopen("/proc/net/dev", "r");
@@ -145,8 +145,8 @@ int collect_network_stats(struct system_stats *stats) {
     }
     
     /* Skip header lines */
-    fgets(line, sizeof(line), fp);
-    fgets(line, sizeof(line), fp);
+    (void)fgets(line, sizeof(line), fp);
+    (void)fgets(line, sizeof(line), fp);
     
     /* Read interface statistics */
     while (fgets(line, sizeof(line), fp)) {

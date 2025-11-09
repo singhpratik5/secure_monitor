@@ -226,6 +226,7 @@ int load_configuration(const char *config_file, struct monitor_config *config) {
                 config->port = atoi(value);
             } else if (strcmp(key, "bind_address") == 0) {
                 strncpy(config->bind_address, value, sizeof(config->bind_address) - 1);
+                config->bind_address[sizeof(config->bind_address) - 1] = '\0';
             } else if (strcmp(key, "max_connections") == 0) {
                 config->max_connections = atoi(value);
             } else if (strcmp(key, "connection_timeout") == 0) {
@@ -344,6 +345,7 @@ static void signal_handler(int signo) {
  * SIGCHLD handler to prevent zombie processes
  */
 static void sigchld_handler(int signo) {
+    (void)signo; // ADD THIS
     int saved_errno = errno;
     pid_t pid;
     int status;
