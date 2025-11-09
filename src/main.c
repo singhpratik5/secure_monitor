@@ -60,10 +60,10 @@ int main(int argc, char *argv[]) {
         
     case MODE_UNKNOWN:
     default:
-        fprintf(stderr, "Unknown operation mode. Use -standalone or -inetd\n");
+        syslog(LOG_ERR, "Unknown operation mode");
         print_usage(argv[0]);
-        free(g_state.config);
-        return 1;
+        ret = -1;
+        break;
     }
     
     /* Cleanup */

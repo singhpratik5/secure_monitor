@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
-
+#include <stdint.h>
+#include "monitor.h"
 char* plugin_get_name(void) {
     return "Memory Monitor";
 }

@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
-
+#include <stdint.h>
+#include "monitor.h"
 /* Plugin interface - these symbols must be exported */
 
 char* plugin_get_name(void) {
