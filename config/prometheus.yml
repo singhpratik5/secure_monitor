@@ -1,0 +1,34 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'production'
+    environment: 'prod'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      - alertmanager:9093
+
+# Rule files
+rule_files:
+  - "alerts.yml"
+
+# Scrape configurations
+scrape_configs:
+  - job_name: 'secure-monitor'
+    static_configs:
+    - targets:
+      - 'secure_monitor:8888'
+    
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    
+    relabel_configs:
+    - source_labels: [__address__]
+      target_label: instance
+      regex: '([^:]+)(?::\d+)?'
+      replacement: '${1}'

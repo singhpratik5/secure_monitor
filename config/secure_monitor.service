@@ -1,0 +1,33 @@
+[Unit]
+Description=Secure Monitoring Daemon
+Documentation=https://github.com/yourusername/secure_monitor
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=forking
+PIDFile=/var/run/secure_monitor.pid
+ExecStartPre=/usr/bin/mkdir -p /var/run /var/log
+ExecStart=/usr/local/bin/secure_monitor -standalone -c /etc/secure_monitor/monitor.conf
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStop=/bin/kill -TERM $MAINPID
+Restart=on-failure
+RestartSec=5s
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/run /var/log /var/lib/secure_monitor
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=512
+
+# User and group
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target

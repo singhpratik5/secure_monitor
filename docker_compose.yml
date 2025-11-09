@@ -1,0 +1,326 @@
+version: '3.8'
+
+services:
+  secure_monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: secure_monitor
+    hostname: secure_monitor
+    restart: unless-stopped
+    
+    ports:
+      - "8888:8888/tcp"
+      - "8888:8888/udp"
+    
+    volumes:
+      - ./config:/etc/secure_monitor:ro
+      - ./plugins:/usr/lib/secure_monitor/plugins:ro
+      - monitor_logs:/var/log
+      - monitor_data:/var/lib/secure_monitor
+    
+    environment:
+      - TZ=UTC
+      - MONITOR_DEBUG=0
+    
+    networks:
+      - monitor_network
+    
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8888"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: Prometheus exporter for metrics
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - monitor_network
+
+  # Optional: Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - monitor_network
+
+volumes:
+  monitor_logs:
+  monitor_data:
+  prometheus_data:
+  grafana_data:
+
+  networks:
+monitor_network:
+driver: bridge
+ipam:
+config:
+- subnet: 172.28.0.0/16
+
+text
+
+### .dockerignore
+Build artifacts
+*.o
+*.so
+*.a
+bin/
+obj/
+*.out
+
+Documentation
+*.md
+docs/
+
+Git
+.git/
+.gitignore
+
+Tests
+tests/
+test_results/
+
+Temporary files
+*.log
+*.tmp
+~
+..swp
+
+IDE files
+.vscode/
+.idea/
+*.iml
+
+OS files
+.DS_Store
+Thumbs.db
+
+text
+
+## 13. Kubernetes Deployment
+
+### k8s/deployment.yaml
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secure-monitor
+  namespace: monitoring
+  labels:
+    app: secure-monitor
+    version: v1.0.0
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: secure-monitor
+  template:
+    metadata:
+      labels:
+        app: secure-monitor
+        version: v1.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8888"
+    spec:
+      containers:
+      - name: secure-monitor
+        image: secure-monitor:1.0.0
+        imagePullPolicy: IfNotPresent
+        
+        ports:
+        - name: tcp-monitor
+          containerPort: 8888
+          protocol: TCP
+        - name: udp-monitor
+          containerPort: 8888
+          protocol: UDP
+        
+        env:
+        - name: MONITOR_PORT
+          value: "8888"
+        - name: MONITOR_DEBUG
+          value: "0"
+        - name: MONITOR_MAX_CONNECTIONS
+          value: "100"
+        
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        
+        livenessProbe:
+          tcpSocket:
+            port: 8888
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          tcpSocket:
+            port: 8888
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        
+        volumeMounts:
+        - name: config
+          mountPath: /etc/secure_monitor
+          readOnly: true
+        - name: plugins
+          mountPath: /usr/lib/secure_monitor/plugins
+          readOnly: true
+        - name: logs
+          mountPath: /var/log
+        
+        securityContext:
+          runAsNonRoot: false
+          readOnlyRootFilesystem: false
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_BIND_SERVICE
+      
+      volumes:
+      - name: config
+        configMap:
+          name: secure-monitor-config
+      - name: plugins
+        emptyDir: {}
+      - name: logs
+        emptyDir: {}
+      
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - secure-monitor
+              topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: secure-monitor-service
+  namespace: monitoring
+  labels:
+    app: secure-monitor
+spec:
+  type: LoadBalancer
+  selector:
+    app: secure-monitor
+  ports:
+  - name: tcp
+    protocol: TCP
+    port: 8888
+    targetPort: 8888
+  - name: udp
+    protocol: UDP
+    port: 8888
+    targetPort: 8888
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 3600
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: secure-monitor-config
+  namespace: monitoring
+data:
+  monitor.conf: |
+    # Secure Monitor Configuration for Kubernetes
+    port = 8888
+    bind_address = 0.0.0.0
+    use_ipv6 = 1
+    max_connections = 100
+    connection_timeout = 60
+    rate_limit = 200
+    plugin_dir = /usr/lib/secure_monitor/plugins
+    log_file = /var/log/secure_monitor.log
+    debug_level = 0
+    use_tls = 0
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: secure-monitor-hpa
+  namespace: monitoring
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: secure-monitor
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30

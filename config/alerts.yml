@@ -1,0 +1,64 @@
+groups:
+- name: secure_monitor_alerts
+  interval: 30s
+  rules:
+  
+  - alert: SecureMonitorDown
+    expr: up{job="secure-monitor"} == 0
+    for: 2m
+    labels:
+      severity: critical
+      component: secure-monitor
+    annotations:
+      summary: "Secure Monitor is down"
+      description: "Secure Monitor instance {{ $labels.instance }} has been down for more than 2 minutes."
+  
+  - alert: HighCPUUsage
+    expr: rate(process_cpu_seconds_total{job="secure-monitor"}[5m]) > 0.8
+    for: 5m
+    labels:
+      severity: warning
+      component: secure-monitor
+    annotations:
+      summary: "High CPU usage detected"
+      description: "Secure Monitor on {{ $labels.instance }} has CPU usage above 80% for 5 minutes."
+  
+  - alert: HighMemoryUsage
+    expr: process_resident_memory_bytes{job="secure-monitor"} > 200000000
+    for: 5m
+    labels:
+      severity: warning
+      component: secure-monitor
+    annotations:
+      summary: "High memory usage detected"
+      description: "Secure Monitor on {{ $labels.instance }} is using more than 200MB of memory."
+  
+  - alert: HighErrorRate
+    expr: rate(monitor_errors_total{job="secure-monitor"}[5m]) > 0.05
+    for: 3m
+    labels:
+      severity: warning
+      component: secure-monitor
+    annotations:
+      summary: "High error rate detected"
+      description: "Secure Monitor on {{ $labels.instance }} has error rate above 5% for 3 minutes."
+  
+  - alert: ConnectionLimitReached
+    expr: monitor_active_connections{job="secure-monitor"} >= monitor_max_connections{job="secure-monitor"}
+    for: 1m
+    labels:
+      severity: warning
+      component: secure-monitor
+    annotations:
+      summary: "Connection limit reached"
+      description: "Secure Monitor on {{ $labels.instance }} has reached its connection limit."
+  
+  - alert: SlowResponseTime
+    expr: histogram_quantile(0.95, rate(monitor_response_time_seconds_bucket[5m])) > 0.5
+    for: 5m
+    labels:
+      severity: warning
+      component: secure-monitor
+    annotations:
+      summary: "Slow response times detected"
+      description: "95th percentile response time on {{ $labels.instance }} is above 500ms."
