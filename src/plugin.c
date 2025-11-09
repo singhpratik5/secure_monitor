@@ -111,6 +111,7 @@ static int load_single_plugin(struct plugin_manager *pm, const char *path) {
         const char *filename = strrchr(path, '/');
         filename = filename ? filename + 1 : path;
         strncpy(plugin->name, filename, MAX_PLUGIN_NAME - 1);
+        plugin->name[MAX_PLUGIN_NAME - 1] = '\0';
     }
     
     /* Get collection interval */

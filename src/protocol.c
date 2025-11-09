@@ -1,6 +1,7 @@
 #include "protocol.h"
 #include "daemon.h"
 #include "monitor.h"
+#include "plugin.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,6 +28,23 @@ struct session_info {
 
 static struct session_info sessions[MAX_SESSIONS];
 static uint32_t next_session_id = 1;
+
+// ADD ALL THESE STATIC PROTOTYPES HERE
+//
+static int process_request(int fd, char *buffer, ssize_t buflen,
+                          int protocol, struct sockaddr *cliaddr,
+                          socklen_t addrlen, struct daemon_state *state);
+
+static int handle_auth_request(int fd, char *buffer, ssize_t buflen,
+                               int protocol, struct sockaddr *cliaddr,
+                               socklen_t addrlen);
+
+static int handle_monitor_request(int fd, char *buffer, ssize_t buflen,
+                                  int protocol, struct sockaddr *cliaddr,
+                                  socklen_t addrlen,
+                                  struct daemon_state *state);
+
+static size_t serialize_stats(struct system_stats *stats, char **buffer);
 
 /**
  * Initialize session management
@@ -149,7 +167,7 @@ static int process_request(int fd, char *buffer, ssize_t buflen,
                           socklen_t addrlen, struct daemon_state *state) {
     uint32_t cmd_type;
     
-    if (buflen < sizeof(uint32_t)) {
+    if (buflen < (ssize_t)sizeof(uint32_t)) {
         syslog(LOG_WARNING, "Request too small");
         return -1;
     }
@@ -202,7 +220,7 @@ int authenticate_client(struct auth_request *req, struct auth_response *resp) {
     }
     
     /* Validate timestamp (prevent replay attacks) */
-    if (abs((long)(now - req->timestamp)) > 300) { /* 5 minute window */
+    if (labs((long)(now - req->timestamp)) > 300) { /* 5 minute window */
         syslog(LOG_WARNING, "Timestamp out of range for user: %s", req->username);
         resp->status = htonl(2);
         return -1;
@@ -247,7 +265,7 @@ static int handle_auth_request(int fd, char *buffer, ssize_t buflen,
     struct auth_request req;
     struct auth_response resp;
     
-    if (buflen < sizeof(struct auth_request)) {
+    if (buflen < (ssize_t)sizeof(struct auth_request)) {
         syslog(LOG_WARNING, "Invalid auth request size");
         return -1;
     }
@@ -277,7 +295,7 @@ static int handle_monitor_request(int fd, char *buffer, ssize_t buflen,
     struct monitor_response *resp = NULL;
     int ret;
     
-    if (buflen < sizeof(struct monitor_cmd)) {
+    if (buflen < (ssize_t)sizeof(struct monitor_cmd)) {
         syslog(LOG_WARNING, "Invalid monitor request size");
         return -1;
     }

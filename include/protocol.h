@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <sys/socket.h>
+#include "daemon.h" 
 
 #define PROTOCOL_VERSION 1
 #define MAX_USERNAME_LEN 32

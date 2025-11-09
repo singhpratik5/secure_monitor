@@ -184,7 +184,7 @@ static uint32_t count_network_connections(void) {
     fp = fopen("/proc/net/tcp", "r");
     if (fp) {
         /* Skip header */
-        fgets(line, sizeof(line), fp);
+        (void)fgets(line, sizeof(line), fp);
         
         while (fgets(line, sizeof(line), fp)) {
             count++;
@@ -196,7 +196,7 @@ static uint32_t count_network_connections(void) {
     fp = fopen("/proc/net/tcp6", "r");
     if (fp) {
         /* Skip header */
-        fgets(line, sizeof(line), fp);
+        (void)fgets(line, sizeof(line), fp);
         
         while (fgets(line, sizeof(line), fp)) {
             count++;
