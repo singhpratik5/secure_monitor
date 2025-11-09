@@ -1,6 +1,7 @@
 #include "daemon.h"
 #include "network.h"
 #include "monitor.h"
+#include "plugin.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,6 +9,8 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
+#include <sys/wait.h>
+#include <netdb.h>
 #include <syslog.h>
 #include <errno.h>
 #include <signal.h>
@@ -81,7 +84,7 @@ int secure_monitor_init(struct daemon_state *state) {
     if (rl.rlim_max == RLIM_INFINITY) {
         rl.rlim_max = 1024;
     }
-    for (i = 0; i < rl.rlim_max; i++) {
+    for (i = 0; i < (int)rl.rlim_max; i++) {  // FIXED: Added cast
         close(i);
     }
     
