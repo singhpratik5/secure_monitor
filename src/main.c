@@ -1,12 +1,15 @@
 #include "daemon.h"
 #include "network.h"
 #include "plugin.h"
+#include "protocol.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <getopt.h>
 #include <syslog.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 
 /* Global daemon state */
 static struct daemon_state g_state;

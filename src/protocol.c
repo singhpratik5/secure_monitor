@@ -8,8 +8,9 @@
 #include <errno.h>
 #include <syslog.h>
 #include <sys/socket.h>
-#include <time.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>
+#include <time.h>
 
 /* Session management */
 #define MAX_SESSIONS 100
